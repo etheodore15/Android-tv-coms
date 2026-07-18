@@ -15,6 +15,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.isActive
@@ -24,6 +25,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonObject
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 enum class ConnectionState { CONNECTED, CONNECTING, DISCONNECTED }
@@ -96,13 +98,17 @@ object RealtimeBus {
             }
         }
         launch {
-            client.realtime.status.collect { status ->
-                if (status == Realtime.Status.CONNECTED &&
-                    ch.status.value == RealtimeChannel.Status.UNSUBSCRIBED
-                ) {
-                    runCatching { ch.subscribe() }
+            // React to either the socket or the channel dropping, so a failed
+            // join retries instead of leaving the collector silently deaf.
+            combine(client.realtime.status, ch.status) { socket, channel -> socket to channel }
+                .collect { (socket, channelStatus) ->
+                    if (socket == Realtime.Status.CONNECTED &&
+                        channelStatus == RealtimeChannel.Status.UNSUBSCRIBED
+                    ) {
+                        delay(500.milliseconds)
+                        runCatching { ch.subscribe() }
+                    }
                 }
-            }
         }
         awaitClose {
             busScope.launch {

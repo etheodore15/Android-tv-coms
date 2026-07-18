@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.sp
 import family.tvlink.core.Config
 import family.tvlink.core.ConnectionState
 import family.tvlink.core.FamilyCrypto
+import family.tvlink.core.Message
 import family.tvlink.core.RealtimeBus
 import family.tvlink.core.SettingsStore
 import kotlinx.coroutines.flow.first
@@ -154,6 +155,24 @@ private fun LinkCodeCard() {
                 FamilyCodeEditor(
                     label = "Code from another TV (to join its family)",
                     warningWhenUnset = null,
+                    onSaved = { code ->
+                        scope.launch {
+                            val name = SettingsStore
+                                .senderName(context, Config.DEFAULT_TV_SENDER_NAME).first()
+                            runCatching {
+                                RealtimeBus.publish(
+                                    Config.CHANNEL_TO_TV,
+                                    code,
+                                    Message(
+                                        from = name,
+                                        text = "linked",
+                                        ts = System.currentTimeMillis(),
+                                        kind = Message.KIND_HELLO,
+                                    ),
+                                )
+                            }
+                        }
+                    },
                 )
             }
         }

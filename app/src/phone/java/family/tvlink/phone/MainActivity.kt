@@ -176,7 +176,29 @@ private fun PhoneScreen(
                 }
             }
 
-            FamilyCodeEditor()
+            FamilyCodeEditor(onSaved = { code ->
+                scope.launch {
+                    val result = runCatching {
+                        RealtimeBus.publish(
+                            Config.CHANNEL_TO_TV,
+                            code,
+                            Message(
+                                from = senderName,
+                                text = "linked",
+                                ts = System.currentTimeMillis(),
+                                kind = Message.KIND_HELLO,
+                            ),
+                        )
+                    }
+                    snackbarHostState.showSnackbar(
+                        if (result.isSuccess) {
+                            "Code saved — look for the confirmation on the TV"
+                        } else {
+                            "Code saved, but the TV couldn't be reached — check connection"
+                        },
+                    )
+                }
+            })
 
             OutlinedTextField(
                 value = nameField ?: senderName,

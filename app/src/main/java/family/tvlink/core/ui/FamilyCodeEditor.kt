@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import family.tvlink.core.FamilyCrypto
 import family.tvlink.core.SettingsStore
 import kotlinx.coroutines.launch
 
@@ -39,6 +40,7 @@ fun FamilyCodeEditor(
         "Not linked yet — messaging is off. Open FamilyTV Link on the TV: it displays " +
             "a link code. Enter that code here to link this device. The code is never " +
             "part of the app download, so outsiders with the APK stay locked out.",
+    onSaved: ((String) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -69,8 +71,11 @@ fun FamilyCodeEditor(
             )
             Button(
                 onClick = {
-                    val value = (field ?: savedCode).trim()
-                    scope.launch { SettingsStore.setFamilyCode(context, value) }
+                    val value = FamilyCrypto.normalizeCode(field ?: savedCode)
+                    scope.launch {
+                        SettingsStore.setFamilyCode(context, value)
+                        onSaved?.invoke(value)
+                    }
                     field = null
                 },
                 enabled = dirty && !(field ?: "").isBlank(),

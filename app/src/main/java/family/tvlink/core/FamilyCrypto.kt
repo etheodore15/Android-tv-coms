@@ -35,6 +35,10 @@ object FamilyCrypto {
     private const val GCM_IV_BYTES = 12
     private const val PAYLOAD_FIELD = "e"
 
+    // Lenient decode so devices on an older build ignore fields added later
+    // instead of dropping the whole message.
+    private val json = Json { ignoreUnknownKeys = true }
+
     // No confusable characters (I/L/O/0/1), so the code survives being read
     // off a TV screen across the room.
     private const val CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
@@ -78,7 +82,7 @@ object FamilyCrypto {
     fun encryptMessage(key: SecretKeySpec, message: Message): JsonObject {
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.ENCRYPT_MODE, key)
-        val ciphertext = cipher.doFinal(Json.encodeToString(Message.serializer(), message).toByteArray())
+        val ciphertext = cipher.doFinal(json.encodeToString(Message.serializer(), message).toByteArray())
         val blob = Base64.encodeToString(cipher.iv + ciphertext, Base64.NO_WRAP)
         return buildJsonObject { put(PAYLOAD_FIELD, blob) }
     }
@@ -93,6 +97,6 @@ object FamilyCrypto {
             GCMParameterSpec(GCM_TAG_BITS, blob.copyOfRange(0, GCM_IV_BYTES)),
         )
         val plaintext = cipher.doFinal(blob.copyOfRange(GCM_IV_BYTES, blob.size))
-        Json.decodeFromString(Message.serializer(), String(plaintext))
+        json.decodeFromString(Message.serializer(), String(plaintext))
     }.getOrNull()
 }

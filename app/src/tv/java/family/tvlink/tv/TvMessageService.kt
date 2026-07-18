@@ -9,6 +9,7 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.provider.Settings
+import android.widget.Toast
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import family.tvlink.core.Config
@@ -72,8 +73,11 @@ class TvMessageService : Service() {
                 .collectLatest { code ->
                     if (code.isBlank()) return@collectLatest
                     RealtimeBus.subscribe(Config.CHANNEL_TO_TV, code).collect { message ->
-                        if (isAddressedToThisTv(message)) {
-                            withContext(Dispatchers.Main) { showMessage(message) }
+                        when {
+                            message.kind == Message.KIND_HELLO -> onDeviceLinked(message)
+                            message.kind != null -> Unit
+                            isAddressedToThisTv(message) ->
+                                withContext(Dispatchers.Main) { showMessage(message) }
                         }
                     }
                 }
@@ -93,6 +97,26 @@ class TvMessageService : Service() {
             }
         }
         return START_STICKY
+    }
+
+    /**
+     * A device just entered our link code: confirm on the TV screen and send
+     * an ack so the phone shows "Linked" too — the pairing handshake.
+     */
+    private suspend fun onDeviceLinked(hello: Message) {
+        withContext(Dispatchers.Main) {
+            Toast.makeText(this@TvMessageService, "${hello.from} linked ✓", Toast.LENGTH_LONG).show()
+        }
+        val code = SettingsStore.familyCode(this).first()
+        if (code.isBlank()) return
+        val name = SettingsStore.senderName(this, Config.DEFAULT_TV_SENDER_NAME).first()
+        runCatching {
+            RealtimeBus.publish(
+                Config.CHANNEL_TO_PHONE,
+                code,
+                Message(from = name, text = "Linked ✓", ts = System.currentTimeMillis(), kind = Message.KIND_ACK),
+            )
+        }
     }
 
     /** A message with no target is for every TV; otherwise match this TV's name. */
