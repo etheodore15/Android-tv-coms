@@ -39,6 +39,7 @@ import family.tvlink.core.Config
 import family.tvlink.core.ConnectionState
 import family.tvlink.core.RealtimeBus
 import family.tvlink.core.SettingsStore
+import family.tvlink.core.ui.FamilyCodeEditor
 import family.tvlink.core.ui.FamilyTvLinkTheme
 import kotlinx.coroutines.launch
 
@@ -131,6 +132,8 @@ private fun TvScreen(
                 },
             )
         }
+
+        FamilyCodeEditor(modifier = Modifier.width(560.dp))
 
         OutlinedTextField(
             value = nameField ?: senderName,

@@ -7,6 +7,10 @@ import io.github.jan.supabase.realtime.RealtimeChannel
 import io.github.jan.supabase.realtime.broadcastFlow
 import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.realtime
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -17,9 +21,8 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.encodeToJsonElement
-import kotlinx.serialization.json.jsonObject
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.JsonObject
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
@@ -30,6 +33,10 @@ enum class ConnectionState { CONNECTED, CONNECTING, DISCONNECTED }
  *
  * All transport concerns live here so a future switch to table-backed history
  * (see build brief section 9) stays a contained change.
+ *
+ * Every publish/subscribe takes the family code: channel names are derived
+ * from it and payloads are AES-GCM encrypted with it (see [FamilyCrypto]),
+ * so holding the APK/anon key alone is not enough to reach the family.
  */
 object RealtimeBus {
 
@@ -41,6 +48,7 @@ object RealtimeBus {
 
     private val channels = mutableMapOf<String, RealtimeChannel>()
     private val channelMutex = Mutex()
+    private val busScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     /** Connection state of the underlying Realtime websocket, for status UI. */
     val connectionState: Flow<ConnectionState>
@@ -57,27 +65,36 @@ object RealtimeBus {
     }
 
     /**
-     * Publish a message on a Broadcast channel.
+     * Publish a message on a Broadcast channel derived from [familyCode].
      *
      * If the websocket is not currently joined to the channel, supabase-kt
      * falls back to the Broadcast HTTP endpoint, so sends still work while
      * the socket is down or the channel is publish-only (phone -> to-tv).
      */
-    suspend fun publish(channelName: String, message: Message) {
-        val ch = channelFor(channelName)
-        ch.broadcast(Config.BROADCAST_EVENT, Json.encodeToJsonElement(message).jsonObject)
+    suspend fun publish(channelBase: String, familyCode: String, message: Message) {
+        withContext(Dispatchers.Default) {
+            val key = FamilyCrypto.deriveKey(familyCode)
+            val ch = channelFor(FamilyCrypto.channelName(channelBase, key))
+            ch.broadcast(Config.BROADCAST_EVENT, FamilyCrypto.encryptMessage(key, message))
+        }
     }
 
     /**
-     * Subscribe to a Broadcast channel and emit incoming messages.
-     *
-     * Re-subscribes the channel whenever the websocket reconnects, so a WiFi
-     * drop never leaves the collector silently detached.
+     * Subscribe to the Broadcast channel derived from [familyCode] and emit
+     * incoming messages; payloads that don't decrypt with the code are
+     * dropped. Re-subscribes whenever the websocket reconnects, and leaves
+     * the channel when the collector is cancelled (e.g. on a code change).
      */
-    fun subscribe(channelName: String): Flow<Message> = channelFlow {
+    fun subscribe(channelBase: String, familyCode: String): Flow<Message> = channelFlow {
+        val key = withContext(Dispatchers.Default) { FamilyCrypto.deriveKey(familyCode) }
+        val channelName = FamilyCrypto.channelName(channelBase, key)
         val ch = channelFor(channelName)
-        val messages = ch.broadcastFlow<Message>(Config.BROADCAST_EVENT)
-        launch { messages.collect { send(it) } }
+        val payloads = ch.broadcastFlow<JsonObject>(Config.BROADCAST_EVENT)
+        launch {
+            payloads.collect { payload ->
+                FamilyCrypto.decryptMessage(key, payload)?.let { send(it) }
+            }
+        }
         launch {
             client.realtime.status.collect { status ->
                 if (status == Realtime.Status.CONNECTED &&
@@ -85,6 +102,13 @@ object RealtimeBus {
                 ) {
                     runCatching { ch.subscribe() }
                 }
+            }
+        }
+        awaitClose {
+            busScope.launch {
+                channelMutex.withLock { channels.remove(channelName) }
+                runCatching { ch.unsubscribe() }
+                runCatching { client.realtime.removeChannel(ch) }
             }
         }
     }

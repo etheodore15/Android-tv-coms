@@ -21,6 +21,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -65,11 +67,16 @@ class TvMessageService : Service() {
 
         scope.launch { RealtimeBus.maintainConnection() }
         scope.launch {
-            RealtimeBus.subscribe(Config.CHANNEL_TO_TV).collect { message ->
-                if (isAddressedToThisTv(message)) {
-                    withContext(Dispatchers.Main) { showMessage(message) }
+            SettingsStore.familyCode(this@TvMessageService)
+                .distinctUntilChanged()
+                .collectLatest { code ->
+                    if (code.isBlank()) return@collectLatest
+                    RealtimeBus.subscribe(Config.CHANNEL_TO_TV, code).collect { message ->
+                        if (isAddressedToThisTv(message)) {
+                            withContext(Dispatchers.Main) { showMessage(message) }
+                        }
+                    }
                 }
-            }
         }
     }
 
@@ -106,10 +113,13 @@ class TvMessageService : Service() {
 
     private fun sendReply(reply: String) {
         scope.launch {
+            val code = SettingsStore.familyCode(this@TvMessageService).first()
+            if (code.isBlank()) return@launch
             val name = SettingsStore.senderName(this@TvMessageService, Config.DEFAULT_TV_SENDER_NAME).first()
             runCatching {
                 RealtimeBus.publish(
                     Config.CHANNEL_TO_PHONE,
+                    code,
                     Message(from = name, text = reply, ts = System.currentTimeMillis()),
                 )
             }

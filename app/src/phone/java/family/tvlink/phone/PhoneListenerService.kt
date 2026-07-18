@@ -9,10 +9,13 @@ import androidx.core.app.ServiceCompat
 import family.tvlink.core.Config
 import family.tvlink.core.Notifications
 import family.tvlink.core.RealtimeBus
+import family.tvlink.core.SettingsStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
 /**
@@ -40,9 +43,14 @@ class PhoneListenerService : Service() {
 
         scope.launch { RealtimeBus.maintainConnection() }
         scope.launch {
-            RealtimeBus.subscribe(Config.CHANNEL_TO_PHONE).collect { message ->
-                Notifications.showMessageNotification(this@PhoneListenerService, message)
-            }
+            SettingsStore.familyCode(this@PhoneListenerService)
+                .distinctUntilChanged()
+                .collectLatest { code ->
+                    if (code.isBlank()) return@collectLatest
+                    RealtimeBus.subscribe(Config.CHANNEL_TO_PHONE, code).collect { message ->
+                        Notifications.showMessageNotification(this@PhoneListenerService, message)
+                    }
+                }
         }
     }
 

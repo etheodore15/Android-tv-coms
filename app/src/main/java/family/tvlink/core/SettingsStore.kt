@@ -19,6 +19,16 @@ object SettingsStore {
         context.dataStore.edit { prefs -> prefs[KEY_SENDER_NAME] = name.trim() }
     }
 
+    private val KEY_FAMILY_CODE = stringPreferencesKey("family_code")
+
+    /** Shared family code; empty until set. Messaging is inactive while empty. */
+    fun familyCode(context: Context): Flow<String> =
+        context.dataStore.data.map { prefs -> prefs[KEY_FAMILY_CODE]?.trim().orEmpty() }
+
+    suspend fun setFamilyCode(context: Context, code: String) {
+        context.dataStore.edit { prefs -> prefs[KEY_FAMILY_CODE] = code.trim() }
+    }
+
     private val KEY_TARGET_TV = stringPreferencesKey("target_tv")
 
     /** Phone-side send target: a TV name from [Config.TV_NAMES], or null for all TVs. */

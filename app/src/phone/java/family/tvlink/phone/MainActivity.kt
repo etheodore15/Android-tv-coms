@@ -52,6 +52,7 @@ import family.tvlink.core.ConnectionState
 import family.tvlink.core.Message
 import family.tvlink.core.RealtimeBus
 import family.tvlink.core.SettingsStore
+import family.tvlink.core.ui.FamilyCodeEditor
 import family.tvlink.core.ui.FamilyTvLinkTheme
 import kotlinx.coroutines.launch
 
@@ -110,6 +111,7 @@ private fun PhoneScreen(
     val senderName by SettingsStore.senderName(context, Config.DEFAULT_PHONE_SENDER_NAME)
         .collectAsState(initial = Config.DEFAULT_PHONE_SENDER_NAME)
     val targetTv by SettingsStore.targetTv(context).collectAsState(initial = null)
+    val familyCode by SettingsStore.familyCode(context).collectAsState(initial = "")
 
     var nameField by remember { mutableStateOf<String?>(null) }
     var freeText by remember { mutableStateOf("") }
@@ -118,12 +120,17 @@ private fun PhoneScreen(
     fun send(text: String) {
         val trimmed = text.trim()
         if (trimmed.isEmpty()) return
+        if (familyCode.isBlank()) {
+            scope.launch { snackbarHostState.showSnackbar("Set the family code first") }
+            return
+        }
         // Guard against a stale selection after Config.TV_NAMES is edited.
         val target = targetTv?.takeIf { it in Config.TV_NAMES }
         scope.launch {
             val result = runCatching {
                 RealtimeBus.publish(
                     Config.CHANNEL_TO_TV,
+                    familyCode,
                     Message(
                         from = senderName,
                         text = trimmed,
@@ -168,6 +175,8 @@ private fun PhoneScreen(
                     }
                 }
             }
+
+            FamilyCodeEditor()
 
             OutlinedTextField(
                 value = nameField ?: senderName,

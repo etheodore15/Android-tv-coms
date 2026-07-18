@@ -43,7 +43,7 @@
   <ol>
     <li>Open this page on the phone and tap the button above (or scan the QR code below from another screen).</li>
     <li>When asked, allow installing from your browser ("unknown sources").</li>
-    <li>Open the downloaded file to install, then open the app: set your name, allow notifications, accept the battery-optimisation exemption.</li>
+    <li>Open the downloaded file to install, then open the app: enter the <strong>family code</strong> (the same secret phrase on every phone and TV — messaging stays off until it's set), set your name, allow notifications, accept the battery-optimisation exemption.</li>
   </ol>
   <p><img class="qr" src="qr-phone.svg" alt="QR code for the phone APK"></p>
   <p class="qrnote">Viewing this on a computer? Scan the QR code with the phone's camera to download directly.</p>
@@ -58,7 +58,7 @@
     <li>Open Downloader and enter this address:</li>
   </ol>
   <span class="url" id="tvurl">tv.apk</span>
-  <p>It downloads and offers to install. Afterwards, launch <strong>FamilyTV Link</strong> once from the TV launcher and grant the overlay permission when prompted, then press "Test overlay".</p>
+  <p>It downloads and offers to install. Afterwards, launch <strong>FamilyTV Link</strong> once from the TV launcher, enter the same <strong>family code</strong> as on the phones, grant the overlay permission when prompted, then press "Test overlay".</p>
   <p>Alternative — from a computer with adb:</p>
   <span class="url">adb connect &lt;TV_IP&gt;:5555 &amp;&amp; adb install -r tv.apk</span>
   <p class="qrnote">(Download <a href="tv.apk" style="color:#81c995">tv.apk</a> to the computer first. Enable network debugging in the TV's developer options.)</p>
