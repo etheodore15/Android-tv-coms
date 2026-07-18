@@ -54,6 +54,7 @@ import family.tvlink.core.RealtimeBus
 import family.tvlink.core.SettingsStore
 import family.tvlink.core.ui.FamilyCodeEditor
 import family.tvlink.core.ui.FamilyTvLinkTheme
+import family.tvlink.core.ui.UpdateSection
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -158,6 +159,7 @@ private fun PhoneScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             ConnectionBanner(connectionState)
+            UpdateSection()
 
             if (!batteryExempt) {
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)) {

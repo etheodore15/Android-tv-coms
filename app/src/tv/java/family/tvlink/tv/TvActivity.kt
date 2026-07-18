@@ -45,6 +45,7 @@ import family.tvlink.core.SettingsStore
 import kotlinx.coroutines.flow.first
 import family.tvlink.core.ui.FamilyCodeEditor
 import family.tvlink.core.ui.FamilyTvLinkTheme
+import family.tvlink.core.ui.UpdateSection
 import kotlinx.coroutines.launch
 
 /**
@@ -263,5 +264,7 @@ private fun TvScreen(
         Button(onClick = onTestOverlay) {
             Text("Test overlay", fontSize = 20.sp)
         }
+
+        UpdateSection()
     }
 }

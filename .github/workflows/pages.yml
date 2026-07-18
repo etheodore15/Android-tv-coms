@@ -52,6 +52,9 @@ jobs:
           cp web/index.html site/
           cp app/build/outputs/apk/phone/debug/app-phone-debug.apk site/phone.apk
           cp app/build/outputs/apk/tv/debug/app-tv-debug.apk site/tv.apk
+          VC=$(grep -oP 'versionCode = \K[0-9]+' app/build.gradle.kts)
+          VN=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          printf '{"versionCode": %s, "versionName": "%s"}\n' "$VC" "$VN" > site/version.json
           BASE_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
           qrencode -t SVG -o site/qr-phone.svg "$BASE_URL/phone.apk"
           sed -i "s|{{UPDATED}}|$(date -u +'%Y-%m-%d %H:%M UTC') · ${GITHUB_SHA::7}|" site/index.html

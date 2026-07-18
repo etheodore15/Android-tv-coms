@@ -11,6 +11,12 @@ object Config {
     const val SUPABASE_URL = "https://YOUR-PROJECT-REF.supabase.co"
     const val SUPABASE_ANON_KEY = "YOUR-ANON-PUBLIC-KEY"
 
+    /**
+     * Where the GitHub Pages install page lives; the apps check
+     * `version.json` here and offer one-tap in-app updates.
+     */
+    const val UPDATE_BASE_URL = "https://etheodore15.github.io/Android-tv-coms/"
+
     /** Broadcast channel the phone publishes to and the TV listens on. */
     const val CHANNEL_TO_TV = "to-tv"
 

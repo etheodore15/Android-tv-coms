@@ -49,6 +49,8 @@ A GitHub Actions workflow ([.github/workflows/pages.yml](.github/workflows/pages
 
 Builds are signed with the committed keystore in `signing/`, so every new build installs as an in-place update — no uninstall needed. The keystore only proves update continuity; repo access is the real gate.
 
+**In-app updates:** after the first install, devices update themselves. Each app checks `version.json` on the install page when opened and shows an "Update to X" button on its settings screen; one tap downloads the APK and opens the system installer (a one-time "install unknown apps" grant for FamilyTV Link is required on each device). Publishing an update is just pushing to the repo — CI rebuilds, bumps the page, and every device offers the update on next open.
+
 ## Manual setup & install runbook
 
 ### Supabase (once, ~5 min)
