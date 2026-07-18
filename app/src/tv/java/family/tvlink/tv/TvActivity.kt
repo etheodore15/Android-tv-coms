@@ -204,6 +204,7 @@ private fun TvScreen(
     val senderName by SettingsStore.senderName(context, Config.DEFAULT_TV_SENDER_NAME)
         .collectAsState(initial = Config.DEFAULT_TV_SENDER_NAME)
     val lastReceived by MessageLog.lastReceived.collectAsState()
+    val lastDisplayMethod by MessageLog.lastDisplayMethod.collectAsState()
     var nameField by remember { mutableStateOf<String?>(null) }
 
     // Two-column landscape layout: everything fits one TV screen, and the
@@ -240,6 +241,18 @@ private fun TvScreen(
                     SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date(msg.ts)),
                 fontSize = 18.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        lastDisplayMethod?.let { method ->
+            Text(
+                "Last message display: $method",
+                fontSize = 18.sp,
+                color = if (method.startsWith("overlay")) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.error
+                },
             )
         }
 

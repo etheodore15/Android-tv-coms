@@ -9,4 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
  */
 object MessageLog {
     val lastReceived = MutableStateFlow<Message?>(null)
+
+    /** How the last message was displayed ("overlay ✓" or a fallback reason). */
+    val lastDisplayMethod = MutableStateFlow<String?>(null)
 }

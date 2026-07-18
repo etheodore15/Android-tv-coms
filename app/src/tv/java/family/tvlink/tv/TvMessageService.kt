@@ -134,13 +134,23 @@ class TvMessageService : Service() {
     /**
      * Overlay when permitted; otherwise (or if the overlay throws) fall back
      * to a toast — visible on TV without any permission — plus a notification.
-     * A received message must never be silently invisible.
+     * A received message must never be silently invisible, and the reason for
+     * a fallback is recorded so the settings screen can display it.
      */
     private fun showMessage(message: Message) {
-        val overlayShown = Settings.canDrawOverlays(this) &&
-            runCatching { overlayController.show(message) }.isSuccess
-        if (!overlayShown) {
-            Toast.makeText(this, "${message.from}: ${message.text}", Toast.LENGTH_LONG).show()
+        val fallbackReason: String? = if (!Settings.canDrawOverlays(this)) {
+            "overlay permission not granted"
+        } else {
+            runCatching { overlayController.show(message) }
+                .exceptionOrNull()?.let { "overlay failed: ${it::class.simpleName}: ${it.message}" }
+        }
+        MessageLog.lastDisplayMethod.value = fallbackReason?.let { "toast fallback — $it" } ?: "overlay ✓"
+        if (fallbackReason != null) {
+            Toast.makeText(
+                this,
+                "${message.from}: ${message.text}\n(no reply buttons: $fallbackReason)",
+                Toast.LENGTH_LONG,
+            ).show()
             Notifications.showMessageNotification(this, message)
         }
     }
