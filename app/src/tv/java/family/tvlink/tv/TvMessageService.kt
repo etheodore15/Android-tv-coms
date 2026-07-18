@@ -14,6 +14,7 @@ import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import family.tvlink.core.Config
 import family.tvlink.core.Message
+import family.tvlink.core.MessageLog
 import family.tvlink.core.Notifications
 import family.tvlink.core.RealtimeBus
 import family.tvlink.core.SettingsStore
@@ -76,8 +77,12 @@ class TvMessageService : Service() {
                         when {
                             message.kind == Message.KIND_HELLO -> onDeviceLinked(message)
                             message.kind != null -> Unit
-                            isAddressedToThisTv(message) ->
-                                withContext(Dispatchers.Main) { showMessage(message) }
+                            isAddressedToThisTv(message) -> {
+                                MessageLog.lastReceived.value = message
+                                withContext(Dispatchers.Main) {
+                                    runCatching { showMessage(message) }
+                                }
+                            }
                         }
                     }
                 }
@@ -126,11 +131,16 @@ class TvMessageService : Service() {
         return target.equals(myName.trim(), ignoreCase = true)
     }
 
-    /** Overlay when permitted; high-priority notification fallback otherwise. */
+    /**
+     * Overlay when permitted; otherwise (or if the overlay throws) fall back
+     * to a toast — visible on TV without any permission — plus a notification.
+     * A received message must never be silently invisible.
+     */
     private fun showMessage(message: Message) {
-        if (Settings.canDrawOverlays(this)) {
-            overlayController.show(message)
-        } else {
+        val overlayShown = Settings.canDrawOverlays(this) &&
+            runCatching { overlayController.show(message) }.isSuccess
+        if (!overlayShown) {
+            Toast.makeText(this, "${message.from}: ${message.text}", Toast.LENGTH_LONG).show()
             Notifications.showMessageNotification(this, message)
         }
     }

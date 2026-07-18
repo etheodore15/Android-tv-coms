@@ -40,6 +40,7 @@ import family.tvlink.core.Config
 import family.tvlink.core.ConnectionState
 import family.tvlink.core.FamilyCrypto
 import family.tvlink.core.Message
+import family.tvlink.core.MessageLog
 import family.tvlink.core.RealtimeBus
 import family.tvlink.core.SettingsStore
 import kotlinx.coroutines.flow.first
@@ -47,6 +48,9 @@ import family.tvlink.core.ui.FamilyCodeEditor
 import family.tvlink.core.ui.FamilyTvLinkTheme
 import family.tvlink.core.ui.UpdateSection
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * Single settings/status screen for the TV: connection status, sender name,
@@ -193,6 +197,7 @@ private fun TvScreen(
         .collectAsState(initial = ConnectionState.DISCONNECTED)
     val senderName by SettingsStore.senderName(context, Config.DEFAULT_TV_SENDER_NAME)
         .collectAsState(initial = Config.DEFAULT_TV_SENDER_NAME)
+    val lastReceived by MessageLog.lastReceived.collectAsState()
     var nameField by remember { mutableStateOf<String?>(null) }
 
     Column(
@@ -217,6 +222,15 @@ private fun TvScreen(
                     ConnectionState.CONNECTING -> MaterialTheme.colorScheme.secondary
                     ConnectionState.DISCONNECTED -> MaterialTheme.colorScheme.error
                 },
+            )
+        }
+
+        lastReceived?.let { msg ->
+            Text(
+                "Last message received: ${msg.from}: \"${msg.text}\" at " +
+                    SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date(msg.ts)),
+                fontSize = 18.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
 
