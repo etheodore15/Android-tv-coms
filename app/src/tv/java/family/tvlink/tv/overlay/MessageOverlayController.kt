@@ -11,11 +11,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -30,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import family.tvlink.core.Config
 import family.tvlink.core.Message
 import family.tvlink.core.ui.FamilyTvLinkTheme
+import family.tvlink.core.ui.FocusHighlightButton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -159,21 +158,27 @@ private fun OverlayContent(
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Config.CANNED_REPLIES.forEachIndexed { index, reply ->
-                    Button(
+                    FocusHighlightButton(
+                        text = reply,
                         onClick = { onReply(reply) },
                         modifier = if (index == 0) {
                             Modifier.weight(1f).focusRequester(firstReplyFocus)
                         } else {
                             Modifier.weight(1f)
                         },
-                    ) {
-                        Text(reply, maxLines = 1)
-                    }
+                    )
                 }
             }
-            TextButton(onClick = onDismiss) {
-                Text("Dismiss")
-            }
+            FocusHighlightButton(
+                text = "Dismiss",
+                onClick = onDismiss,
+                outlined = true,
+            )
+            Text(
+                "◀ ▶ choose · OK sends · BACK closes",
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 

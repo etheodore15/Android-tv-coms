@@ -48,6 +48,7 @@ import family.tvlink.core.SettingsStore
 import kotlinx.coroutines.flow.first
 import family.tvlink.core.ui.FamilyCodeEditor
 import family.tvlink.core.ui.FamilyTvLinkTheme
+import family.tvlink.core.ui.FocusHighlightButton
 import family.tvlink.core.ui.UpdateSection
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -142,16 +143,19 @@ private fun LinkCodeCard() {
                 lineHeight = 26.sp,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(onClick = {
-                    scope.launch {
-                        SettingsStore.setFamilyCode(context, FamilyCrypto.generateLinkCode())
-                    }
-                }) {
-                    Text("Generate new code")
-                }
-                Button(onClick = { showManualEntry = !showManualEntry }) {
-                    Text("Enter a code instead")
-                }
+                FocusHighlightButton(
+                    text = "Generate new code",
+                    onClick = {
+                        scope.launch {
+                            SettingsStore.setFamilyCode(context, FamilyCrypto.generateLinkCode())
+                        }
+                    },
+                )
+                FocusHighlightButton(
+                    text = "Enter a code instead",
+                    onClick = { showManualEntry = !showManualEntry },
+                    outlined = true,
+                )
             }
             Text(
                 "Generating a new code unlinks every device until it enters the new one.",
@@ -260,9 +264,11 @@ private fun TvScreen(
 
                 OverlayPermissionSection(overlayGranted, onRequestOverlayPermission)
 
-                Button(onClick = onTestOverlay) {
-                    Text("Test overlay", fontSize = 20.sp)
-                }
+                FocusHighlightButton(
+                    text = "Test overlay",
+                    onClick = onTestOverlay,
+                    fontSize = 20.sp,
+                )
 
                 UpdateSection()
             }
@@ -295,9 +301,10 @@ private fun OverlayPermissionSection(
                         fontSize = 18.sp,
                         lineHeight = 26.sp,
                     )
-                    Button(onClick = onRequestOverlayPermission) {
-                        Text("Open permission settings")
-                    }
+                    FocusHighlightButton(
+                        text = "Open permission settings",
+                        onClick = onRequestOverlayPermission,
+                    )
                 }
             }
     } else {
