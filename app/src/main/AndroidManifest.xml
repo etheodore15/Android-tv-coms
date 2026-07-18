@@ -14,6 +14,10 @@
         android:label="@string/app_name"
         android:theme="@style/Theme.FamilyTVLink">
 
+        <receiver
+            android:name="family.tvlink.core.NotificationAckReceiver"
+            android:exported="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
