@@ -138,7 +138,7 @@ private fun TvScreen(
                 nameField = value
                 scope.launch { SettingsStore.setSenderName(context, value) }
             },
-            label = { Text("Sender name (shown on phone replies)") },
+            label = { Text("TV name (send target on the phone; shown on replies)") },
             singleLine = true,
             modifier = Modifier.width(420.dp),
         )

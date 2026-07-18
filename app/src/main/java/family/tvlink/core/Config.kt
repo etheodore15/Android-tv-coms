@@ -23,6 +23,18 @@ object Config {
     /** Canned replies shown on the TV overlay, in order. */
     val CANNED_REPLIES = listOf("OK", "5 mins", "Coming", "No")
 
+    /**
+     * The family's TVs, shown as send targets on the phone. Each TV's
+     * "Sender name" (on its settings screen) must match one of these entries
+     * for addressed messages to reach it; messages sent to "All TVs" reach
+     * every TV regardless. With a single TV the default name "TV" works
+     * as-is — just leave this list as it is.
+     */
+    val TV_NAMES = listOf("TV")
+
+    /** Phone-side label for the send-to-every-TV option. */
+    const val ALL_TVS_LABEL = "All TVs"
+
     /** Preset message buttons on the phone, in order. */
     val PRESET_MESSAGES = listOf(
         "Dinner's ready",

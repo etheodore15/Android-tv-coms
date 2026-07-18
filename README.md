@@ -40,9 +40,19 @@ APKs land in `app/build/outputs/apk/phone/debug/` and `app/build/outputs/apk/tv/
 1. Copy `app/build/outputs/apk/phone/debug/app-phone-debug.apk` to the phone (or `adb install`), allow install from unknown sources.
 2. Open, set sender name, allow notifications, accept the battery-optimisation exemption.
 
+## Multiple TVs
+
+Install the TV APK on each TV, then:
+
+1. Add each TV's name to `TV_NAMES` in `Config.kt` (e.g. `listOf("Living room", "Bedroom")`) and rebuild/reinstall both APKs.
+2. On each TV's settings screen, set its **TV name** to exactly one of those entries (case-insensitive).
+3. The phone then shows a target selector — **All TVs** or a specific TV — above the preset buttons. The selector is hidden while `TV_NAMES` has a single entry, and messages with no target (including sends from older builds) appear on every TV.
+
+Replies are already distinguished by the TV's name in the notification.
+
 ## Editing family settings
 
-Everything family-editable lives in one file, `Config.kt`: Supabase credentials, channel names, canned replies, preset messages, overlay timeout, default sender names.
+Everything family-editable lives in one file, `Config.kt`: Supabase credentials, channel names, TV names, canned replies, preset messages, overlay timeout, default sender names.
 
 ## Notes
 

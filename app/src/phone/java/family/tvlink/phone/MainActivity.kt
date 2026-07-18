@@ -10,6 +10,7 @@ import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,9 +22,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -106,6 +109,7 @@ private fun PhoneScreen(
         .collectAsState(initial = ConnectionState.DISCONNECTED)
     val senderName by SettingsStore.senderName(context, Config.DEFAULT_PHONE_SENDER_NAME)
         .collectAsState(initial = Config.DEFAULT_PHONE_SENDER_NAME)
+    val targetTv by SettingsStore.targetTv(context).collectAsState(initial = null)
 
     var nameField by remember { mutableStateOf<String?>(null) }
     var freeText by remember { mutableStateOf("") }
@@ -114,15 +118,26 @@ private fun PhoneScreen(
     fun send(text: String) {
         val trimmed = text.trim()
         if (trimmed.isEmpty()) return
+        // Guard against a stale selection after Config.TV_NAMES is edited.
+        val target = targetTv?.takeIf { it in Config.TV_NAMES }
         scope.launch {
             val result = runCatching {
                 RealtimeBus.publish(
                     Config.CHANNEL_TO_TV,
-                    Message(from = senderName, text = trimmed, ts = System.currentTimeMillis()),
+                    Message(
+                        from = senderName,
+                        text = trimmed,
+                        ts = System.currentTimeMillis(),
+                        to = target,
+                    ),
                 )
             }
             snackbarHostState.showSnackbar(
-                if (result.isSuccess) "Sent ✓" else "Send failed — check connection",
+                if (result.isSuccess) {
+                    "Sent to ${target ?: Config.ALL_TVS_LABEL} ✓"
+                } else {
+                    "Send failed — check connection"
+                },
             )
         }
     }
@@ -164,6 +179,26 @@ private fun PhoneScreen(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
+
+            if (Config.TV_NAMES.size > 1) {
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    FilterChip(
+                        selected = targetTv == null,
+                        onClick = { scope.launch { SettingsStore.setTargetTv(context, null) } },
+                        label = { Text(Config.ALL_TVS_LABEL) },
+                    )
+                    Config.TV_NAMES.forEach { tv ->
+                        FilterChip(
+                            selected = targetTv == tv,
+                            onClick = { scope.launch { SettingsStore.setTargetTv(context, tv) } },
+                            label = { Text(tv) },
+                        )
+                    }
+                }
+            }
 
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),

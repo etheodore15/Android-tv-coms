@@ -18,4 +18,14 @@ object SettingsStore {
     suspend fun setSenderName(context: Context, name: String) {
         context.dataStore.edit { prefs -> prefs[KEY_SENDER_NAME] = name.trim() }
     }
+
+    private val KEY_TARGET_TV = stringPreferencesKey("target_tv")
+
+    /** Phone-side send target: a TV name from [Config.TV_NAMES], or null for all TVs. */
+    fun targetTv(context: Context): Flow<String?> =
+        context.dataStore.data.map { prefs -> prefs[KEY_TARGET_TV]?.ifBlank { null } }
+
+    suspend fun setTargetTv(context: Context, tvName: String?) {
+        context.dataStore.edit { prefs -> prefs[KEY_TARGET_TV] = tvName.orEmpty() }
+    }
 }

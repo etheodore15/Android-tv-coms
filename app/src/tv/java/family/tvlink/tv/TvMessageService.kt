@@ -66,7 +66,9 @@ class TvMessageService : Service() {
         scope.launch { RealtimeBus.maintainConnection() }
         scope.launch {
             RealtimeBus.subscribe(Config.CHANNEL_TO_TV).collect { message ->
-                withContext(Dispatchers.Main) { showMessage(message) }
+                if (isAddressedToThisTv(message)) {
+                    withContext(Dispatchers.Main) { showMessage(message) }
+                }
             }
         }
     }
@@ -84,6 +86,13 @@ class TvMessageService : Service() {
             }
         }
         return START_STICKY
+    }
+
+    /** A message with no target is for every TV; otherwise match this TV's name. */
+    private suspend fun isAddressedToThisTv(message: Message): Boolean {
+        val target = message.to?.trim().takeUnless { it.isNullOrEmpty() } ?: return true
+        val myName = SettingsStore.senderName(this, Config.DEFAULT_TV_SENDER_NAME).first()
+        return target.equals(myName.trim(), ignoreCase = true)
     }
 
     /** Overlay when permitted; high-priority notification fallback otherwise. */
