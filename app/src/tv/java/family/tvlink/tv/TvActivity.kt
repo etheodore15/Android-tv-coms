@@ -11,12 +11,14 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.lifecycleScope
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -124,7 +126,7 @@ private fun LinkCodeCard() {
 
     Card {
         Column(
-            Modifier.padding(24.dp).width(560.dp),
+            Modifier.padding(24.dp).fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text("Link code", style = MaterialTheme.typography.titleLarge)
@@ -200,11 +202,14 @@ private fun TvScreen(
     val lastReceived by MessageLog.lastReceived.collectAsState()
     var nameField by remember { mutableStateOf<String?>(null) }
 
+    // Two-column landscape layout: everything fits one TV screen, and the
+    // whole thing scrolls as a safety net for small/overscanned panels.
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(48.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 48.dp, vertical = 32.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text("FamilyTV Link", style = MaterialTheme.typography.headlineLarge)
 
@@ -234,20 +239,44 @@ private fun TvScreen(
             )
         }
 
-        LinkCodeCard()
+        Row(horizontalArrangement = Arrangement.spacedBy(32.dp)) {
+            Box(Modifier.weight(1f)) {
+                LinkCodeCard()
+            }
+            Column(
+                Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                OutlinedTextField(
+                    value = nameField ?: senderName,
+                    onValueChange = { value ->
+                        nameField = value
+                        scope.launch { SettingsStore.setSenderName(context, value) }
+                    },
+                    label = { Text("TV name (send target on the phone; shown on replies)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
 
-        OutlinedTextField(
-            value = nameField ?: senderName,
-            onValueChange = { value ->
-                nameField = value
-                scope.launch { SettingsStore.setSenderName(context, value) }
-            },
-            label = { Text("TV name (send target on the phone; shown on replies)") },
-            singleLine = true,
-            modifier = Modifier.width(420.dp),
-        )
+                OverlayPermissionSection(overlayGranted, onRequestOverlayPermission)
 
-        if (!overlayGranted) {
+                Button(onClick = onTestOverlay) {
+                    Text("Test overlay", fontSize = 20.sp)
+                }
+
+                UpdateSection()
+            }
+        }
+    }
+}
+
+@Composable
+private fun OverlayPermissionSection(
+    overlayGranted: Boolean,
+    onRequestOverlayPermission: () -> Unit,
+) {
+    val context = LocalContext.current
+    if (!overlayGranted) {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
                 Column(
                     Modifier.padding(20.dp).fillMaxWidth(),
@@ -271,14 +300,7 @@ private fun TvScreen(
                     }
                 }
             }
-        } else {
-            Text("Overlay permission granted ✓", fontSize = 20.sp, color = MaterialTheme.colorScheme.primary)
-        }
-
-        Button(onClick = onTestOverlay) {
-            Text("Test overlay", fontSize = 20.sp)
-        }
-
-        UpdateSection()
+    } else {
+        Text("Overlay permission granted ✓", fontSize = 20.sp, color = MaterialTheme.colorScheme.primary)
     }
 }
