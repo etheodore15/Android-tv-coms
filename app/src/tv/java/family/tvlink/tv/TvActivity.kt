@@ -9,6 +9,7 @@ import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.lifecycle.lifecycleScope
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -37,8 +38,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import family.tvlink.core.Config
 import family.tvlink.core.ConnectionState
+import family.tvlink.core.FamilyCrypto
 import family.tvlink.core.RealtimeBus
 import family.tvlink.core.SettingsStore
+import kotlinx.coroutines.flow.first
 import family.tvlink.core.ui.FamilyCodeEditor
 import family.tvlink.core.ui.FamilyTvLinkTheme
 import kotlinx.coroutines.launch
@@ -60,6 +63,14 @@ class TvActivity : ComponentActivity() {
         TvMessageService.start(this)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+
+        // First launch: mint this family's link code so the screen can display
+        // it immediately for the phones to enter.
+        lifecycleScope.launch {
+            if (SettingsStore.familyCode(this@TvActivity).first().isBlank()) {
+                SettingsStore.setFamilyCode(this@TvActivity, FamilyCrypto.generateLinkCode())
+            }
         }
 
         setContent {
@@ -89,6 +100,62 @@ class TvActivity : ComponentActivity() {
             startActivity(intent)
         } else {
             startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION))
+        }
+    }
+}
+
+/**
+ * Displays this family's link code for phones to enter, with a regenerate
+ * button (unlinks everything until devices enter the new code) and a manual
+ * entry field for joining another TV's existing family.
+ */
+@Composable
+private fun LinkCodeCard() {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val familyCode by SettingsStore.familyCode(context).collectAsState(initial = "")
+    var showManualEntry by remember { mutableStateOf(false) }
+
+    Card {
+        Column(
+            Modifier.padding(24.dp).width(560.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text("Link code", style = MaterialTheme.typography.titleLarge)
+            Text(
+                text = if (familyCode.isBlank()) "…" else FamilyCrypto.formatForDisplay(familyCode),
+                fontSize = 44.sp,
+                letterSpacing = 4.sp,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Text(
+                "On each phone, open FamilyTV Link and enter this code to link it to this TV.",
+                fontSize = 18.sp,
+                lineHeight = 26.sp,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Button(onClick = {
+                    scope.launch {
+                        SettingsStore.setFamilyCode(context, FamilyCrypto.generateLinkCode())
+                    }
+                }) {
+                    Text("Generate new code")
+                }
+                Button(onClick = { showManualEntry = !showManualEntry }) {
+                    Text("Enter a code instead")
+                }
+            }
+            Text(
+                "Generating a new code unlinks every device until it enters the new one.",
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (showManualEntry) {
+                FamilyCodeEditor(
+                    label = "Code from another TV (to join its family)",
+                    warningWhenUnset = null,
+                )
+            }
         }
     }
 }
@@ -133,7 +200,7 @@ private fun TvScreen(
             )
         }
 
-        FamilyCodeEditor(modifier = Modifier.width(560.dp))
+        LinkCodeCard()
 
         OutlinedTextField(
             value = nameField ?: senderName,

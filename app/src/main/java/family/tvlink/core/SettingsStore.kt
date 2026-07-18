@@ -21,12 +21,12 @@ object SettingsStore {
 
     private val KEY_FAMILY_CODE = stringPreferencesKey("family_code")
 
-    /** Shared family code; empty until set. Messaging is inactive while empty. */
+    /** Shared link code (normalized); empty until set. Messaging is inactive while empty. */
     fun familyCode(context: Context): Flow<String> =
         context.dataStore.data.map { prefs -> prefs[KEY_FAMILY_CODE]?.trim().orEmpty() }
 
     suspend fun setFamilyCode(context: Context, code: String) {
-        context.dataStore.edit { prefs -> prefs[KEY_FAMILY_CODE] = code.trim() }
+        context.dataStore.edit { prefs -> prefs[KEY_FAMILY_CODE] = FamilyCrypto.normalizeCode(code) }
     }
 
     private val KEY_TARGET_TV = stringPreferencesKey("target_tv")

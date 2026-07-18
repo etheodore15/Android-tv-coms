@@ -26,12 +26,20 @@ import family.tvlink.core.SettingsStore
 import kotlinx.coroutines.launch
 
 /**
- * Family-code field with an explicit Save button (saving per keystroke would
- * churn the channel subscription). Shows a warning card while no code is set:
- * messaging is inactive until every device carries the same code.
+ * Link-code entry field with an explicit Save button (saving per keystroke
+ * would churn the channel subscription). Codes are normalized on save, so
+ * case and dashes don't matter when typing one in. Optionally shows a
+ * warning card while no code is set — messaging is inactive until linked.
  */
 @Composable
-fun FamilyCodeEditor(modifier: Modifier = Modifier) {
+fun FamilyCodeEditor(
+    modifier: Modifier = Modifier,
+    label: String = "Link code (shown on the TV)",
+    warningWhenUnset: String? =
+        "Not linked yet — messaging is off. Open FamilyTV Link on the TV: it displays " +
+            "a link code. Enter that code here to link this device. The code is never " +
+            "part of the app download, so outsiders with the APK stay locked out.",
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val savedCode by SettingsStore.familyCode(context).collectAsState(initial = "")
@@ -39,12 +47,10 @@ fun FamilyCodeEditor(modifier: Modifier = Modifier) {
     val dirty = field != null && field != savedCode
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (savedCode.isEmpty()) {
+        if (savedCode.isEmpty() && warningWhenUnset != null) {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
                 Text(
-                    "Set the family code to activate messaging. Pick a phrase together and " +
-                        "enter exactly the same code on every phone and TV — it is never " +
-                        "stored in the app download, so outsiders with the APK stay locked out.",
+                    warningWhenUnset,
                     modifier = Modifier.padding(12.dp),
                     style = MaterialTheme.typography.bodyMedium,
                 )
@@ -57,7 +63,7 @@ fun FamilyCodeEditor(modifier: Modifier = Modifier) {
             OutlinedTextField(
                 value = field ?: savedCode,
                 onValueChange = { field = it },
-                label = { Text("Family code (same on every device)") },
+                label = { Text(label) },
                 singleLine = true,
                 modifier = Modifier.weight(1f),
             )

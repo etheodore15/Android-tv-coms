@@ -7,14 +7,20 @@ A private, family-only Android app pair (no accounts, no Play Store — sideload
 
 Transport is **Supabase Realtime Broadcast** (WebSocket pub/sub) — channel `to-tv` for phone→TV, `to-phone` for TV→phone. Messages are ephemeral; nothing is stored anywhere.
 
-## Family code (security)
+## Link code (security & pairing)
 
-Because the APKs sit on a public URL, the anon key inside them can't be the only gate. Each device's owner enters a **family code** once (settings screen on both apps) — the same secret phrase everywhere, never compiled into the APK. From it the apps derive (PBKDF2, 120k iterations):
+Because the APKs sit on a public URL, the anon key inside them can't be the only gate. Devices pair with a **link code**:
+
+1. On first launch the TV generates a random 8-character code (secure RNG, no confusable characters) and displays it on its settings screen, e.g. `K7F3-P2M9`.
+2. On each phone, enter that code (case and dashes don't matter) — the phone is now linked.
+3. Extra TVs: press "Enter a code instead" on the new TV and type the first TV's code.
+
+The code is never compiled into the APK. From it the apps derive (PBKDF2, 120k iterations):
 
 - **secret channel names** — `to-tv-<hmac>` instead of `to-tv`, so an outsider holding the APK can't find the family's channels; and
 - an **AES-256-GCM key** that encrypts every message, so traffic can be neither read nor forged without the code. Payloads that don't decrypt are dropped silently.
 
-Messaging is inactive until the code is set; changing it takes effect immediately (enter the new code on every device). Pick a phrase with a few words — the code is what actually protects you. Rotating the Supabase anon key remains available as a second lever.
+Messaging is inactive until a device is linked. If an APK (or the code) ever leaves the family, press **Generate new code** on the TV and re-enter it on the phones — instant lockout of the old code, no rebuild needed. Rotating the Supabase anon key remains available as a second lever.
 
 ## Build
 

@@ -35,14 +35,36 @@ object FamilyCrypto {
     private const val GCM_IV_BYTES = 12
     private const val PAYLOAD_FIELD = "e"
 
+    // No confusable characters (I/L/O/0/1), so the code survives being read
+    // off a TV screen across the room.
+    private const val CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
+    private const val CODE_LENGTH = 8
+
+    /** Random link code, generated and displayed by a TV (~40 bits of entropy). */
+    fun generateLinkCode(): String {
+        val random = java.security.SecureRandom()
+        return buildString(CODE_LENGTH) {
+            repeat(CODE_LENGTH) { append(CODE_ALPHABET[random.nextInt(CODE_ALPHABET.length)]) }
+        }
+    }
+
+    /** Case, dashes and spaces don't matter when typing a code in. */
+    fun normalizeCode(raw: String): String = raw.uppercase().filter { it.isLetterOrDigit() }
+
+    /** "K7F3P2M9" -> "K7F3-P2M9" for on-screen display. */
+    fun formatForDisplay(code: String): String = normalizeCode(code).chunked(4).joinToString("-")
+
     // PBKDF2 at this iteration count takes noticeable time on TV hardware;
     // derive once per code and reuse.
     private val keyCache = ConcurrentHashMap<String, SecretKeySpec>()
 
-    fun deriveKey(code: String): SecretKeySpec = keyCache.getOrPut(code.trim()) {
-        val spec = PBEKeySpec(code.trim().toCharArray(), KDF_SALT.toByteArray(), KDF_ITERATIONS, 256)
-        val bytes = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).encoded
-        SecretKeySpec(bytes, "AES")
+    fun deriveKey(code: String): SecretKeySpec {
+        val normalized = normalizeCode(code)
+        return keyCache.getOrPut(normalized) {
+            val spec = PBEKeySpec(normalized.toCharArray(), KDF_SALT.toByteArray(), KDF_ITERATIONS, 256)
+            val bytes = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).encoded
+            SecretKeySpec(bytes, "AES")
+        }
     }
 
     fun channelName(base: String, key: SecretKeySpec): String {
