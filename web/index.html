@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FamilyTV Link — install</title>
+<style>
+  :root { color-scheme: dark; }
+  body {
+    margin: 0; padding: 24px; background: #101418; color: #e8eaed;
+    font-family: system-ui, sans-serif; line-height: 1.5;
+    max-width: 720px; margin-inline: auto;
+  }
+  h1 { color: #81c995; margin-bottom: 4px; }
+  .updated { color: #9aa0a6; font-size: 14px; margin-bottom: 24px; }
+  section {
+    background: #1b2127; border-radius: 16px; padding: 20px 24px; margin-bottom: 24px;
+  }
+  h2 { margin-top: 0; }
+  a.button {
+    display: inline-block; background: #1b5e20; color: #fff; text-decoration: none;
+    font-size: 20px; font-weight: 600; padding: 14px 28px; border-radius: 12px;
+    margin: 8px 0;
+  }
+  a.button:focus, a.button:hover { background: #2e7d32; }
+  code, .url {
+    background: #0d1117; border-radius: 8px; padding: 2px 8px;
+    font-family: ui-monospace, monospace; font-size: 15px; word-break: break-all;
+  }
+  .url { display: block; padding: 12px; font-size: 18px; margin: 8px 0; }
+  ol { padding-left: 22px; } li { margin-bottom: 6px; }
+  img.qr { width: 180px; height: 180px; background: #fff; padding: 8px; border-radius: 12px; }
+  .qrnote { color: #9aa0a6; font-size: 14px; }
+</style>
+</head>
+<body>
+<h1>FamilyTV Link</h1>
+<p class="updated">Updated {{UPDATED}}</p>
+
+<section>
+  <h2>📱 Phone</h2>
+  <a class="button" href="phone.apk">Download phone app</a>
+  <ol>
+    <li>Open this page on the phone and tap the button above (or scan the QR code below from another screen).</li>
+    <li>When asked, allow installing from your browser ("unknown sources").</li>
+    <li>Open the downloaded file to install, then open the app: set your name, allow notifications, accept the battery-optimisation exemption.</li>
+  </ol>
+  <p><img class="qr" src="qr-phone.svg" alt="QR code for the phone APK"></p>
+  <p class="qrnote">Viewing this on a computer? Scan the QR code with the phone's camera to download directly.</p>
+</section>
+
+<section>
+  <h2>📺 TV</h2>
+  <p>Easiest way — with the free <strong>Downloader</strong> app (Play Store on the TV):</p>
+  <ol>
+    <li>On the TV, install "Downloader by AFTVnews" from the Play Store.</li>
+    <li>In the TV's settings, allow Downloader to install unknown apps (Settings → Apps → Security &amp; restrictions → Unknown sources).</li>
+    <li>Open Downloader and enter this address:</li>
+  </ol>
+  <span class="url" id="tvurl">tv.apk</span>
+  <p>It downloads and offers to install. Afterwards, launch <strong>FamilyTV Link</strong> once from the TV launcher and grant the overlay permission when prompted, then press "Test overlay".</p>
+  <p>Alternative — from a computer with adb:</p>
+  <span class="url">adb connect &lt;TV_IP&gt;:5555 &amp;&amp; adb install -r tv.apk</span>
+  <p class="qrnote">(Download <a href="tv.apk" style="color:#81c995">tv.apk</a> to the computer first. Enable network debugging in the TV's developer options.)</p>
+</section>
+
+<script>
+  document.getElementById('tvurl').textContent = new URL('tv.apk', location.href).href;
+</script>
+</body>
+</html>

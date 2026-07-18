@@ -29,9 +29,25 @@ android {
         }
     }
 
+    signingConfigs {
+        // Committed keystore so every build (local or CI) signs identically and
+        // installs as an update. It only proves update continuity for this
+        // family app; treat repo access as the real gate.
+        create("family") {
+            storeFile = rootProject.file("signing/family.keystore")
+            storePassword = "familytv"
+            keyAlias = "familytv"
+            keyPassword = "familytv"
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("family")
+        }
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("family")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }

@@ -17,7 +17,24 @@ APKs land in `app/build/outputs/apk/phone/debug/` and `app/build/outputs/apk/tv/
 
 > Before building for real use, fill in your Supabase credentials — see below.
 
-## Setup & install runbook
+## Easy install via GitHub Pages (recommended)
+
+A GitHub Actions workflow ([.github/workflows/pages.yml](.github/workflows/pages.yml)) builds both APKs with your Supabase credentials and publishes them behind a simple install page.
+
+**One-time setup:**
+
+1. In the repo: **Settings → Secrets and variables → Actions**, add two repository secrets: `SUPABASE_URL` and `SUPABASE_ANON_KEY` (from Supabase **Settings → API**).
+2. **Settings → Pages**, set Source to **GitHub Actions**.
+3. Push to the default branch (or run the workflow from the Actions tab). Note: GitHub Pages on a private repo requires a paid GitHub plan; on a public repo the page and APKs are world-readable — the anon key gates the Supabase project and can be rotated from the dashboard if needed.
+
+**Then, on each device**, open `https://<owner>.github.io/<repo>/`:
+
+- **Phone:** tap the download button, allow "unknown sources", install.
+- **TV:** install the free "Downloader" app from the TV's Play Store, enter the `tv.apk` address shown on the page, install. (Or use adb — the page shows the command.)
+
+Builds are signed with the committed keystore in `signing/`, so every new build installs as an in-place update — no uninstall needed. The keystore only proves update continuity; repo access is the real gate.
+
+## Manual setup & install runbook
 
 ### Supabase (once, ~5 min)
 

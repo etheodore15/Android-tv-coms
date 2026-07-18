@@ -1,0 +1,65 @@
+name: Build APKs and publish install page
+
+on:
+  push:
+    branches:
+      - main
+      - claude/familytv-link-android-vx6abv
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Inject Supabase credentials
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::error::Set the SUPABASE_URL and SUPABASE_ANON_KEY repository secrets (Settings -> Secrets and variables -> Actions) so the built apps can connect."
+            exit 1
+          fi
+          sed -i "s|https://YOUR-PROJECT-REF.supabase.co|$SUPABASE_URL|" app/src/main/java/family/tvlink/core/Config.kt
+          sed -i "s|YOUR-ANON-PUBLIC-KEY|$SUPABASE_ANON_KEY|" app/src/main/java/family/tvlink/core/Config.kt
+
+      - name: Build APKs
+        run: ./gradlew assemblePhoneDebug assembleTvDebug
+
+      - name: Assemble site
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq qrencode
+          mkdir site
+          cp web/index.html site/
+          cp app/build/outputs/apk/phone/debug/app-phone-debug.apk site/phone.apk
+          cp app/build/outputs/apk/tv/debug/app-tv-debug.apk site/tv.apk
+          BASE_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+          qrencode -t SVG -o site/qr-phone.svg "$BASE_URL/phone.apk"
+          sed -i "s|{{UPDATED}}|$(date -u +'%Y-%m-%d %H:%M UTC') · ${GITHUB_SHA::7}|" site/index.html
+          touch site/.nojekyll
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
