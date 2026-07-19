@@ -29,6 +29,16 @@ object SettingsStore {
         context.dataStore.edit { prefs -> prefs[KEY_FAMILY_CODE] = FamilyCrypto.normalizeCode(code) }
     }
 
+    private val KEY_TV_IP = stringPreferencesKey("tv_ip")
+
+    /** TV's LAN IP for the phone's ADB-based TV toolbox. */
+    fun tvIp(context: Context): Flow<String> =
+        context.dataStore.data.map { prefs -> prefs[KEY_TV_IP]?.trim().orEmpty() }
+
+    suspend fun setTvIp(context: Context, ip: String) {
+        context.dataStore.edit { prefs -> prefs[KEY_TV_IP] = ip.trim() }
+    }
+
     private val KEY_TARGET_TV = stringPreferencesKey("target_tv")
 
     /** Phone-side send target: a TV name from [Config.TV_NAMES], or null for all TVs. */

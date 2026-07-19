@@ -272,6 +272,8 @@ private fun PhoneScreen(
                     Text("Send")
                 }
             }
+
+            TvFixerSection()
         }
     }
 }
